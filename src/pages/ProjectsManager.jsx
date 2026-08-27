@@ -12,7 +12,8 @@ const ProjectsManager = () => {
         category: 'fullstack',
         tech: '',
         github: '',
-        live: ''
+        live: '',
+        imageUrl: ''
     });
     const [isSaving, setIsSaving] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
@@ -45,7 +46,8 @@ const ProjectsManager = () => {
             category: 'fullstack',
             tech: '',
             github: '',
-            live: ''
+            live: '',
+            imageUrl: ''
         });
         setErrorMsg('');
         setModalOpen(true);
@@ -54,7 +56,8 @@ const ProjectsManager = () => {
     const openEditModal = (proj) => {
         setCurrentProject({
             ...proj,
-            tech: Array.isArray(proj.tech) ? proj.tech.join(', ') : proj.tech
+            tech: Array.isArray(proj.tech) ? proj.tech.join(', ') : proj.tech,
+            imageUrl: proj.imageUrl || ''
         });
         setErrorMsg('');
         setModalOpen(true);
@@ -136,7 +139,7 @@ const ProjectsManager = () => {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-900/40 border-b border-white/5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                                <th className="px-6 py-4">Tên Dự Án</th>
+                                <th className="px-6 py-4">Hình Ảnh & Tên Dự Án</th>
                                 <th className="px-6 py-4">Phân Loại</th>
                                 <th className="px-6 py-4">Công Nghệ</th>
                                 <th className="px-6 py-4 text-right">Hành Động</th>
@@ -151,8 +154,15 @@ const ProjectsManager = () => {
                                 projects.map((proj, idx) => (
                                     <tr key={idx} className="hover:bg-white/5 transition-colors duration-200">
                                         <td className="px-6 py-4">
-                                            <div className="font-semibold text-white flex items-center gap-2">
-                                                <FolderGit2 className="w-4 h-4 text-primary" /> {proj.title}
+                                            <div className="flex items-center gap-3">
+                                                <img 
+                                                    src={proj.imageUrl || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=100'} 
+                                                    alt={proj.title}
+                                                    className="w-14 h-9 rounded object-cover border border-white/10 shrink-0"
+                                                />
+                                                <div className="font-semibold text-white flex items-center gap-2">
+                                                    {proj.title}
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
@@ -258,6 +268,18 @@ const ProjectsManager = () => {
                                         placeholder="React, Node.js, Express"
                                     />
                                 </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-slate-300">Đường Dẫn Ảnh Dự Án (URL)</label>
+                                <input 
+                                    type="text" 
+                                    name="imageUrl"
+                                    value={currentProject.imageUrl}
+                                    onChange={handleInputChange}
+                                    className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white"
+                                    placeholder="https://images.unsplash.com/..."
+                                />
                             </div>
 
                             <div className="space-y-1">
