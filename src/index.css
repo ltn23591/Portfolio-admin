@@ -1,0 +1,70 @@
+@import 'tailwindcss';
+
+@theme {
+    --color-background: #06090d;
+    --color-foreground: #f0f2f5;
+
+    --color-card: #0d1219;
+    --color-card-hover: #121921;
+
+    --color-primary: #14b8a6;
+    --color-secondary: #0ea5e9;
+    --color-accent: #10b981;
+    --color-muted: #1e293b;
+    --color-muted-foreground: #94a3b8;
+
+    --color-border: #1e293b;
+
+    --radius-lg: 1rem;
+    --radius-xl: 1.5rem;
+}
+
+@layer base {
+    body {
+        background-color: var(--color-background);
+        color: var(--color-foreground);
+        font-family: 'Outfit', 'Inter', sans-serif;
+        overflow-x: hidden;
+    }
+
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #06090d;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #1e293b;
+        border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #14b8a6;
+    }
+}
+
+@layer components {
+    /* UI Pro Max Glass Panels */
+    .glass-panel {
+        background: rgba(13, 18, 25, 0.7);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .glass-header {
+        background: rgba(6, 9, 13, 0.75);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .glow-hover {
+        transition: all 0.3s ease;
+    }
+    .glow-hover:hover {
+        border-color: rgba(20, 184, 166, 0.3);
+        box-shadow: 0 0 20px rgba(20, 184, 166, 0.08);
+    }
+}
