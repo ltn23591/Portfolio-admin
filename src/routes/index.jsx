@@ -8,6 +8,8 @@ import AboutManager from '../pages/AboutManager';
 import ProjectsManager from '../pages/ProjectsManager';
 import ExperienceManager from '../pages/ExperienceManager';
 import TestimonialsManager from '../pages/TestimonialsManager';
+import LibrariesManager from '../pages/LibrariesManager';
+import ExtensionsManager from '../pages/ExtensionsManager';
 import Messages from '../pages/Messages';
 import Settings from '../pages/Settings';
 
@@ -27,6 +29,8 @@ const AppRoutes = () => {
                     <Route path="/projects" element={<ProjectsManager />} />
                     <Route path="/experience" element={<ExperienceManager />} />
                     <Route path="/testimonials" element={<TestimonialsManager />} />
+                    <Route path="/libraries" element={<LibrariesManager />} />
+                    <Route path="/extensions" element={<ExtensionsManager />} />
                     <Route path="/messages" element={<Messages />} />
                     <Route path="/settings" element={<Settings />} />
                 </Routes>

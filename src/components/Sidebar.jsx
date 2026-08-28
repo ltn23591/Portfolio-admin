@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router';
 import { 
     LayoutDashboard, MessageSquare, Settings, ShieldAlert, LogOut,
-    Home, User, FolderGit2, Briefcase, Star, Sliders 
+    Home, User, FolderGit2, Briefcase, Star, Sliders, BookOpen, Box
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -12,6 +12,8 @@ const Sidebar = () => {
         { path: '/hero', label: 'Cấu Hình Banner', icon: <Home className="w-5 h-5" /> },
         { path: '/about', label: 'Thông Tin Bio', icon: <User className="w-5 h-5" /> },
         { path: '/projects', label: 'Quản Lý Dự Án', icon: <FolderGit2 className="w-5 h-5" /> },
+        { path: '/libraries', label: 'Quản Lý Thư Viện', icon: <BookOpen className="w-5 h-5" /> },
+        { path: '/extensions', label: 'Tiện Ích VS Code', icon: <Box className="w-5 h-5" /> },
         { path: '/experience', label: 'Kinh Nghiệm', icon: <Briefcase className="w-5 h-5" /> },
         { path: '/testimonials', label: 'Đánh Giá', icon: <Star className="w-5 h-5" /> },
         { path: '/messages', label: 'Hộp Thư', icon: <MessageSquare className="w-5 h-5" /> },

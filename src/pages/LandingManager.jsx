@@ -96,7 +96,7 @@ const LandingManager = () => {
                                 <input 
                                     type="text" 
                                     name="resumeUrl"
-                                    value={formData.resumeUrl}
+                                    value={formData.resumeUrl || ''}
                                     onChange={handleInputChange}
                                     className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-primary"
                                 />
@@ -166,7 +166,7 @@ const LandingManager = () => {
                                     name="githubUrl"
                                     value={formData.githubUrl}
                                     onChange={handleInputChange}
-                                    className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-4.5 py-2 text-xs text-white"
+                                    className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-4 py-2 text-xs text-white focus:outline-none"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -176,7 +176,7 @@ const LandingManager = () => {
                                     name="linkedinUrl"
                                     value={formData.linkedinUrl}
                                     onChange={handleInputChange}
-                                    className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-4.5 py-2 text-xs text-white"
+                                    className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-4 py-2 text-xs text-white focus:outline-none"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -186,7 +186,7 @@ const LandingManager = () => {
                                     name="telegramUrl"
                                     value={formData.telegramUrl}
                                     onChange={handleInputChange}
-                                    className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-4.5 py-2 text-xs text-white"
+                                    className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-4 py-2 text-xs text-white focus:outline-none"
                                 />
                             </div>
                         </div>
@@ -241,6 +241,8 @@ const LandingManager = () => {
                                 <option value="obsidian-teal">Obsidian Teal (Mặc định)</option>
                                 <option value="midnight-purple">Midnight Purple (Tím)</option>
                                 <option value="charcoal-emerald">Charcoal Emerald (Xanh Lá)</option>
+                                <option value="cyberpunk-neon">Cyberpunk Neon (Hồng/Xanh)</option>
+                                <option value="minimalist-clean">Minimalist Clean (Trắng/Sáng)</option>
                             </select>
                         </div>
 

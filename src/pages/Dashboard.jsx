@@ -6,11 +6,15 @@ import {
 import { 
     MessageSquare, Eye, ShieldAlert, Cpu, Activity, MailPlus, AlertCircle
 } from 'lucide-react';
+import { io } from 'socket.io-client';
+import api from '../lib/api';
 
 const Dashboard = () => {
     const [messagesCount, setMessagesCount] = useState(0);
     const [unreadCount, setUnreadCount] = useState(0);
     const [systemMetrics, setSystemMetrics] = useState({ cpu: '1.2%', ram: '42%' });
+    const [liveVisitors, setLiveVisitors] = useState(1);
+    const [newNotification, setNewNotification] = useState(null);
 
     // Mock analytical traffic data
     const chartData = [
@@ -23,25 +27,34 @@ const Dashboard = () => {
         { day: 'CN', submissions: 9, traffic: 310 }
     ];
 
-    // Fetch messages from backend for real-time stats
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const res = await fetch('http://localhost:3000/api/contact');
-                if (res.ok) {
-                    const data = await res.json();
-                    setMessagesCount(data.length);
-                    setUnreadCount(data.filter((_, idx) => idx % 2 === 0).length);
-                }
-            } catch (err) {
-                // Fallbacks to default mocks if backend offline
-                setMessagesCount(15);
-                setUnreadCount(4);
-            }
-        };
+    const fetchStats = async () => {
+        try {
+            const res = await api.get('/contact');
+            const data = res.data;
+            setMessagesCount(data.length);
+            setUnreadCount(data.filter((_, idx) => idx % 2 === 0).length);
+        } catch (err) {
+            setMessagesCount(15);
+            setUnreadCount(4);
+        }
+    };
 
+    useEffect(() => {
         fetchStats();
-        // Update metric values mock on interval
+
+        // Connect socket client
+        const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const socket = io(baseURL);
+
+        socket.on('visitor_count', (data) => {
+            setLiveVisitors(data.count || 1);
+        });
+
+        socket.on('new_contact_message', (msg) => {
+            setNewNotification(msg);
+            fetchStats();
+        });
+
         const timer = setInterval(() => {
             setSystemMetrics({
                 cpu: `${(1 + Math.random() * 5).toFixed(1)}%`,
@@ -49,18 +62,42 @@ const Dashboard = () => {
             });
         }, 3000);
 
-        return () => clearInterval(timer);
+        return () => {
+            clearInterval(timer);
+            socket.disconnect();
+        };
     }, []);
 
     const cards = [
         { icon: <MessageSquare className="w-5 h-5 text-primary" />, title: "Tổng Số Liên Hệ", value: messagesCount, subtitle: "+12% so với tuần trước" },
         { icon: <MailPlus className="w-5 h-5 text-orange-400" />, title: "Thư Chưa Đọc", value: unreadCount, subtitle: "Cần phản hồi sớm" },
-        { icon: <Cpu className="w-5 h-5 text-secondary" />, title: "Tải CPU Máy Chủ", value: systemMetrics.cpu, subtitle: "Đo lường thời gian thực" },
+        { icon: <Eye className="w-5 h-5 text-secondary" />, title: "Khách Xem Trực Tiếp", value: liveVisitors, subtitle: "Số liệu WebSockets live" },
         { icon: <Activity className="w-5 h-5 text-emerald-400" />, title: "Trạng Thái Hệ Thống", value: "Hoạt Động", subtitle: "NestJS Port 3000 online" }
     ];
 
     return (
         <div className="space-y-8 animate-fade-in-up">
+            {/* Realtime Alert Banner */}
+            {newNotification && (
+                <div className="p-4 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 rounded-2xl flex items-center justify-between gap-4 animate-bounce">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-emerald-500/20 rounded-xl">
+                            <MailPlus className="w-5 h-5 animate-pulse" />
+                        </div>
+                        <div className="text-left">
+                            <p className="text-xs font-bold text-slate-300">Tin nhắn liên hệ mới từ {newNotification.name}!</p>
+                            <p className="text-sm font-semibold text-white">Chủ đề: {newNotification.subject}</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => setNewNotification(null)}
+                        className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-bold text-emerald-300 cursor-pointer"
+                    >
+                        Đóng
+                    </button>
+                </div>
+            )}
+
             {/* Header section */}
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="text-left">

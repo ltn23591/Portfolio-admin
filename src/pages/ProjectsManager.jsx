@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, X, Save, RefreshCw, FolderGit2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Save, RefreshCw, FolderGit2, Trash, GripHorizontal } from 'lucide-react';
 
 const ProjectsManager = () => {
     const [projects, setProjects] = useState([]);
@@ -13,10 +13,13 @@ const ProjectsManager = () => {
         tech: '',
         github: '',
         live: '',
-        imageUrl: ''
+        images: [],
+        repos: []
     });
     const [isSaving, setIsSaving] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
+    const [draggedIndex, setDraggedIndex] = useState(null);
 
     const fetchProjects = async () => {
         setIsLoading(true);
@@ -47,7 +50,8 @@ const ProjectsManager = () => {
             tech: '',
             github: '',
             live: '',
-            imageUrl: ''
+            images: [],
+            repos: []
         });
         setErrorMsg('');
         setModalOpen(true);
@@ -57,7 +61,8 @@ const ProjectsManager = () => {
         setCurrentProject({
             ...proj,
             tech: Array.isArray(proj.tech) ? proj.tech.join(', ') : proj.tech,
-            imageUrl: proj.imageUrl || ''
+            images: Array.isArray(proj.images) ? proj.images : (proj.images ? [proj.images] : []),
+            repos: Array.isArray(proj.repos) ? proj.repos : []
         });
         setErrorMsg('');
         setModalOpen(true);
@@ -79,19 +84,127 @@ const ProjectsManager = () => {
         }
     };
 
+    const handleFileUpload = async (e) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        setIsUploading(true);
+        setErrorMsg('');
+
+        try {
+            const uploadedUrls = [];
+            for (let i = 0; i < files.length; i++) {
+                const formData = new FormData();
+                formData.append('file', files[i]);
+                const res = await fetch('http://localhost:3000/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (res.ok && data.url) {
+                    uploadedUrls.push(data.url);
+                } else {
+                    setErrorMsg(data.message || 'Tải một số ảnh lên thất bại.');
+                }
+            }
+
+            if (uploadedUrls.length > 0) {
+                setCurrentProject(prev => ({
+                    ...prev,
+                    images: [...(prev.images || []), ...uploadedUrls]
+                }));
+            }
+        } catch (err) {
+            setErrorMsg('Lỗi kết nối khi tải ảnh lên.');
+        } finally {
+            setIsUploading(false);
+            e.target.value = '';
+        }
+    };
+
+    const removeImage = (indexToRemove) => {
+        setCurrentProject(prev => ({
+            ...prev,
+            images: prev.images.filter((_, idx) => idx !== indexToRemove)
+        }));
+    };
+
+    // HTML5 Drag & Drop handlers for sorting images
+    const handleDragStart = (e, index) => {
+        setDraggedIndex(index);
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDragOver = (e, index) => {
+        e.preventDefault();
+    };
+
+    const handleDrop = (e, targetIndex) => {
+        e.preventDefault();
+        if (draggedIndex === null || draggedIndex === targetIndex) return;
+
+        const updatedImages = [...currentProject.images];
+        const draggedImage = updatedImages[draggedIndex];
+        
+        // Remove from original position
+        updatedImages.splice(draggedIndex, 1);
+        // Insert into target position
+        updatedImages.splice(targetIndex, 0, draggedImage);
+
+        setCurrentProject(prev => ({
+            ...prev,
+            images: updatedImages
+        }));
+        setDraggedIndex(null);
+    };
+
+    const handleDragEnd = () => {
+        setDraggedIndex(null);
+    };
+
+    const addGithubRepo = () => {
+        setCurrentProject(prev => ({
+            ...prev,
+            repos: [...(prev.repos || []), { label: '', url: '' }]
+        }));
+    };
+
+    const removeGithubRepo = (idx) => {
+        setCurrentProject(prev => ({
+            ...prev,
+            repos: prev.repos.filter((_, i) => i !== idx)
+        }));
+    };
+
+    const handleGithubRepoChange = (idx, field, value) => {
+        setCurrentProject(prev => {
+            const updated = [...prev.repos];
+            updated[idx] = { ...updated[idx], [field]: value };
+            return { ...prev, repos: updated };
+        });
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSaving(true);
         setErrorMsg('');
         
-        // Parse Tech comma separated string to array
         const techArray = currentProject.tech
             ? currentProject.tech.split(',').map(t => t.trim()).filter(t => t.length > 0)
             : [];
 
+        const reposList = (currentProject.repos || [])
+            .filter(r => r.url.trim().length > 0)
+            .map(r => ({ label: r.label.trim() || 'Code', url: r.url.trim() }));
+
+        const primaryGithub = reposList.length > 0 ? reposList[0].url : '';
+
         const payload = {
             ...currentProject,
-            tech: techArray
+            tech: techArray,
+            images: currentProject.images,
+            github: primaryGithub,
+            repos: reposList
         };
 
         try {
@@ -156,12 +269,13 @@ const ProjectsManager = () => {
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <img 
-                                                    src={proj.imageUrl || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=100'} 
+                                                    src={(proj.images && proj.images.length > 0) ? proj.images[0] : 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=100'} 
                                                     alt={proj.title}
                                                     className="w-14 h-9 rounded object-cover border border-white/10 shrink-0"
                                                 />
-                                                <div className="font-semibold text-white flex items-center gap-2">
-                                                    {proj.title}
+                                                <div className="font-semibold text-white flex flex-col">
+                                                    <span>{proj.title}</span>
+                                                    <span className="text-[11px] text-muted-foreground">({proj.images ? proj.images.length : 0} ảnh)</span>
                                                 </div>
                                             </div>
                                         </td>
@@ -222,7 +336,7 @@ const ProjectsManager = () => {
                             </button>
                         </div>
                         {/* Form */}
-                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
                             {errorMsg && (
                                 <div className="p-3.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold rounded-xl">
                                     {errorMsg}
@@ -270,16 +384,91 @@ const ProjectsManager = () => {
                                 </div>
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-slate-300">Đường Dẫn Ảnh Dự Án (URL)</label>
-                                <input 
-                                    type="text" 
-                                    name="imageUrl"
-                                    value={currentProject.imageUrl}
-                                    onChange={handleInputChange}
-                                    className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white"
-                                    placeholder="https://images.unsplash.com/..."
-                                />
+                            {/* Images Grid Manager */}
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-300">Album Hình Ảnh Dự Án ({currentProject.images ? currentProject.images.length : 0} ảnh)</label>
+                                        <p className="text-[10px] text-muted-foreground mt-0.5">Kéo thả các ảnh để thay đổi thứ tự. Ảnh đầu tiên sẽ là ảnh đại diện chính.</p>
+                                    </div>
+                                    <div>
+                                        <input 
+                                            type="file" 
+                                            accept="image/*" 
+                                            multiple
+                                            onChange={handleFileUpload} 
+                                            className="hidden" 
+                                            id="project-image-files" 
+                                        />
+                                        <label 
+                                            htmlFor="project-image-files"
+                                            className="px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-xs font-bold text-primary hover:bg-primary/20 hover:text-white transition-all cursor-pointer block"
+                                        >
+                                            {isUploading ? 'Đang tải...' : '+ Thêm Ảnh'}
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* Thumbnail previews */}
+                                {currentProject.images && currentProject.images.length > 0 ? (
+                                    <div className="grid grid-cols-4 gap-2 p-2.5 bg-slate-900/40 border border-white/5 rounded-xl">
+                                        {currentProject.images.map((imgUrl, index) => (
+                                            <div 
+                                                key={index} 
+                                                draggable
+                                                onDragStart={(e) => handleDragStart(e, index)}
+                                                onDragOver={(e) => handleDragOver(e, index)}
+                                                onDrop={(e) => handleDrop(e, index)}
+                                                onDragEnd={handleDragEnd}
+                                                className={`relative group/thumb aspect-video rounded-lg overflow-hidden border transition-all duration-300 cursor-grab active:cursor-grabbing ${
+                                                    index === 0 
+                                                        ? 'border-primary ring-1 ring-primary/45 shadow-[0_0_12px_rgba(20,184,166,0.15)]' 
+                                                        : 'border-white/10 hover:border-white/30'
+                                                } ${draggedIndex === index ? 'opacity-40 scale-95' : 'opacity-100'}`}
+                                            >
+                                                <img 
+                                                    src={imgUrl} 
+                                                    alt={`preview-${index}`} 
+                                                    className="w-full h-full object-cover select-none"
+                                                />
+                                                
+                                                {/* Cover Badge for index 0 */}
+                                                {index === 0 && (
+                                                    <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-primary text-[8px] font-extrabold text-slate-950 shadow-md pointer-events-none select-none uppercase tracking-wider">
+                                                        Ảnh chính
+                                                    </span>
+                                                )}
+
+                                                {/* Drag handle helper icon */}
+                                                <div className="absolute top-1.5 right-1.5 p-1 rounded bg-black/60 text-slate-300 pointer-events-none opacity-50 group-hover/thumb:opacity-100 transition-opacity">
+                                                    <GripHorizontal className="w-3 h-3" />
+                                                </div>
+
+                                                {/* Hover reorder text */}
+                                                <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                                                    <span className="text-[9px] text-white font-medium bg-black/80 px-1.5 py-0.5 rounded">Kéo thả</span>
+                                                </div>
+
+                                                {/* Delete Button */}
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        removeImage(index);
+                                                    }}
+                                                    className="absolute bottom-1.5 right-1.5 p-1 rounded bg-rose-600 hover:bg-rose-500 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity duration-200 cursor-pointer shadow-md"
+                                                    title="Xóa ảnh"
+                                                >
+                                                    <Trash className="w-3 h-3" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-4 bg-slate-900/20 border border-dashed border-white/10 rounded-xl text-xs text-muted-foreground">
+                                        Chưa có hình ảnh nào. Hãy thêm ảnh để hiển thị Slider ngoài Landing Page.
+                                    </div>
+                                )}
                             </div>
 
                             <div className="space-y-1">
@@ -294,29 +483,65 @@ const ProjectsManager = () => {
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-300">Đường Dẫn GitHub</label>
-                                    <input 
-                                        type="text" 
-                                        name="github"
-                                        value={currentProject.github}
-                                        onChange={handleInputChange}
-                                        className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white"
-                                        placeholder="https://github.com/..."
-                                    />
+                            {/* GitHub Repos Dynamic List */}
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                    <label className="text-xs font-bold text-slate-300">Danh sách Repositories GitHub</label>
+                                    <button
+                                        type="button"
+                                        onClick={addGithubRepo}
+                                        className="px-2.5 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary hover:bg-primary/20 hover:text-white transition-all cursor-pointer"
+                                    >
+                                        + Thêm Repo
+                                    </button>
                                 </div>
-                                <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-300">Đường Dẫn Demo Trực Tiếp</label>
-                                    <input 
-                                        type="text" 
-                                        name="live"
-                                        value={currentProject.live}
-                                        onChange={handleInputChange}
-                                        className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white"
-                                        placeholder="https://example.com"
-                                    />
-                                </div>
+                                
+                                {currentProject.repos && currentProject.repos.length > 0 ? (
+                                    <div className="space-y-2 p-2.5 bg-slate-900/40 border border-white/5 rounded-xl">
+                                        {currentProject.repos.map((repo, idx) => (
+                                            <div key={idx} className="flex gap-2 items-center">
+                                                <input 
+                                                    type="text"
+                                                    value={repo.label}
+                                                    onChange={(e) => handleGithubRepoChange(idx, 'label', e.target.value)}
+                                                    className="w-1/4 bg-slate-900/60 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white"
+                                                    placeholder="FE, BE, Admin..."
+                                                />
+                                                <input 
+                                                    type="text"
+                                                    value={repo.url}
+                                                    onChange={(e) => handleGithubRepoChange(idx, 'url', e.target.value)}
+                                                    className="w-2/3 bg-slate-900/60 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white"
+                                                    placeholder="https://github.com/..."
+                                                    required
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeGithubRepo(idx)}
+                                                    className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/20 text-rose-400 hover:text-rose-300 transition-colors cursor-pointer"
+                                                >
+                                                    <Trash className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-3 bg-slate-900/20 border border-dashed border-white/10 rounded-xl text-[11px] text-muted-foreground">
+                                        Chưa có repository nào. Hãy bấm + Thêm Repo.
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-slate-300">Đường Dẫn Demo Trực Tiếp</label>
+                                <input 
+                                    type="text" 
+                                    name="live"
+                                    value={currentProject.live}
+                                    onChange={handleInputChange}
+                                    className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white"
+                                    placeholder="https://example.com"
+                                />
                             </div>
 
                             <div className="pt-4 border-t border-white/5 flex justify-end gap-3">
@@ -329,7 +554,7 @@ const ProjectsManager = () => {
                                 </button>
                                 <button 
                                     type="submit" 
-                                    disabled={isSaving}
+                                    disabled={isSaving || isUploading}
                                     className="px-5 py-2 rounded-lg font-semibold bg-gradient-to-r from-primary to-secondary text-white hover:shadow-[0_0_10px_rgba(20,184,166,0.2)] transition-all cursor-pointer active:scale-95 disabled:opacity-50"
                                 >
                                     <Save className="w-4 h-4 inline mr-1.5" /> {isSaving ? 'Đang lưu...' : 'Lưu Thay Đổi'}
