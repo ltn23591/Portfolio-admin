@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, X, Save, Briefcase } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Save, Briefcase, TrendingUp } from 'lucide-react';
+import { SpotlightCard, BlurText, ShinyText } from '../components/reactbits';
 
 const ExperienceManager = () => {
     const [experiences, setExperiences] = useState([]);
@@ -10,8 +11,9 @@ const ExperienceManager = () => {
         role: '',
         company: '',
         period: '',
+        achievements: '',
         description: '',
-        skills: ''
+        skills: '',
     });
     const [isSaving, setIsSaving] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
@@ -25,7 +27,7 @@ const ExperienceManager = () => {
                 const data = await res.json();
                 setExperiences(data);
             }
-        } catch (err) {
+        } catch {
             setErrorMsg('Không thể kết nối đến máy chủ.');
         } finally {
             setIsLoading(false);
@@ -33,7 +35,22 @@ const ExperienceManager = () => {
     };
 
     useEffect(() => {
-        fetchExperiences();
+        let isMounted = true;
+        const init = async () => {
+            try {
+                const res = await fetch('http://localhost:3000/api/portfolio/experience');
+                if (res.ok && isMounted) {
+                    const data = await res.json();
+                    setExperiences(data);
+                }
+            } catch {
+                if (isMounted) setErrorMsg('Không thể kết nối đến máy chủ.');
+            }
+        };
+        init();
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     const openAddModal = () => {
@@ -42,8 +59,9 @@ const ExperienceManager = () => {
             role: '',
             company: '',
             period: '',
+            achievements: '',
             description: '',
-            skills: ''
+            skills: '',
         });
         setErrorMsg('');
         setModalOpen(true);
@@ -52,8 +70,13 @@ const ExperienceManager = () => {
     const openEditModal = (exp) => {
         setCurrentExp({
             ...exp,
-            description: Array.isArray(exp.description) ? exp.description.join('\n') : exp.description,
-            skills: Array.isArray(exp.skills) ? exp.skills.join(', ') : exp.skills
+            achievements: Array.isArray(exp.achievements)
+                ? exp.achievements.join(', ')
+                : exp.achievements || '',
+            description: Array.isArray(exp.description)
+                ? exp.description.join('\n')
+                : exp.description || '',
+            skills: Array.isArray(exp.skills) ? exp.skills.join(', ') : exp.skills || '',
         });
         setErrorMsg('');
         setModalOpen(true);
@@ -63,14 +86,14 @@ const ExperienceManager = () => {
         if (!window.confirm('Bạn có chắc chắn muốn xóa mục kinh nghiệm này?')) return;
         try {
             const res = await fetch(`http://localhost:3000/api/portfolio/experience/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
             });
             if (res.ok) {
                 fetchExperiences();
             } else {
                 alert('Xóa thất bại.');
             }
-        } catch (err) {
+        } catch {
             alert('Lỗi kết nối.');
         }
     };
@@ -79,27 +102,38 @@ const ExperienceManager = () => {
         e.preventDefault();
         setIsSaving(true);
         setErrorMsg('');
-        
-        // Parse bullets split by newline
+
         const descArray = currentExp.description
-            ? currentExp.description.split('\n').map(d => d.trim()).filter(d => d.length > 0)
+            ? currentExp.description
+                  .split('\n')
+                  .map((d) => d.trim())
+                  .filter((d) => d.length > 0)
             : [];
-        // Parse skills comma separated
         const skillsArray = currentExp.skills
-            ? currentExp.skills.split(',').map(s => s.trim()).filter(s => s.length > 0)
+            ? currentExp.skills
+                  .split(',')
+                  .map((s) => s.trim())
+                  .filter((s) => s.length > 0)
+            : [];
+        const achArray = currentExp.achievements
+            ? currentExp.achievements
+                  .split(',')
+                  .map((a) => a.trim())
+                  .filter((a) => a.length > 0)
             : [];
 
         const payload = {
             ...currentExp,
+            achievements: achArray,
             description: descArray,
-            skills: skillsArray
+            skills: skillsArray,
         };
 
         try {
             const res = await fetch('http://localhost:3000/api/portfolio/experience', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payload),
             });
             if (res.ok) {
                 setModalOpen(false);
@@ -107,7 +141,7 @@ const ExperienceManager = () => {
             } else {
                 setErrorMsg('Không thể lưu thông tin kinh nghiệm.');
             }
-        } catch (err) {
+        } catch {
             setErrorMsg('Lỗi kết nối.');
         } finally {
             setIsSaving(false);
@@ -116,193 +150,245 @@ const ExperienceManager = () => {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setCurrentExp(prev => ({ ...prev, [name]: value }));
+        setCurrentExp((prev) => ({ ...prev, [name]: value }));
     };
 
     return (
         <div className="space-y-8 animate-fade-in-up">
+            {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="text-left">
-                    <h1 className="text-3xl font-bold font-outfit text-white">Quản Lý Kinh Nghiệm</h1>
-                    <p className="text-sm text-muted-foreground mt-1">Thêm, chỉnh sửa hoặc xóa lịch sử làm việc/công tác.</p>
+                    <ShinyText
+                        text="04 // WORK EXPERIENCE & ACHIEVEMENTS"
+                        speed={3}
+                        className="text-xs font-orbitron font-bold uppercase tracking-widest mb-1"
+                    />
+                    <h1 className="text-3xl font-bold font-orbitron text-white">
+                        <BlurText text="4. Quản Lý Kinh Nghiệm & Thành Tựu" />
+                    </h1>
+                    <p className="text-sm text-muted-foreground font-space mt-1">
+                        Tổng hợp kinh nghiệm làm việc ngành nghề liên quan và thành tựu ngắn gọn, súc tích.
+                    </p>
                 </div>
-                <button 
+                <button
                     onClick={openAddModal}
-                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary to-secondary text-white font-semibold flex items-center gap-2 hover:shadow-[0_0_15px_rgba(20,184,166,0.25)] transition-all duration-300 cursor-pointer"
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary to-secondary text-slate-950 font-orbitron font-bold text-xs uppercase tracking-wider flex items-center gap-2 hover:shadow-[0_0_15px_rgba(20,184,166,0.3)] transition-all duration-300 cursor-pointer"
                 >
-                    <Plus className="w-5 h-5" /> Thêm Kinh Nghiệm
+                    <Plus className="w-4 h-4" /> Thêm Kinh Nghiệm
                 </button>
             </div>
 
-            {/* Experience list table */}
-            <div className="glass-panel rounded-2xl overflow-hidden border border-white/5 text-left">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-slate-900/40 border-b border-white/5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                                <th className="px-6 py-4">Vị Trí & Công Ty</th>
-                                <th className="px-6 py-4">Thời Gian</th>
-                                <th className="px-6 py-4">Kỹ Năng</th>
-                                <th className="px-6 py-4 text-right">Hành Động</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5 text-sm text-slate-300">
-                            {isLoading ? (
-                                <tr>
-                                    <td colSpan="4" className="px-6 py-8 text-center text-muted-foreground animate-pulse">Đang tải dữ liệu...</td>
-                                </tr>
-                            ) : experiences.length > 0 ? (
-                                experiences.map((exp, idx) => (
-                                    <tr key={idx} className="hover:bg-white/5 transition-colors duration-200">
-                                        <td className="px-6 py-4">
-                                            <div className="font-semibold text-white flex items-center gap-2">
-                                                <Briefcase className="w-4 h-4 text-primary" /> {exp.role}
-                                            </div>
-                                            <div className="text-xs text-teal-400 mt-0.5">{exp.company}</div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className="text-xs font-mono text-muted-foreground">{exp.period}</span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex flex-wrap gap-1 max-w-[200px]">
-                                                {exp.skills.map((s, sIdx) => (
-                                                    <span key={sIdx} className="text-[10px] bg-white/5 px-2 py-0.5 rounded text-slate-400">{s}</span>
-                                                ))}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <button 
-                                                    onClick={() => openEditModal(exp)}
-                                                    className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/5 transition-colors cursor-pointer"
-                                                >
-                                                    <Edit2 className="w-4 h-4" />
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleDelete(exp.id)}
-                                                    className="p-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 hover:border-rose-500/40 transition-colors cursor-pointer"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan="4" className="px-6 py-8 text-center text-muted-foreground">Chưa có thông tin kinh nghiệm nào.</td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+            {/* List */}
+            {isLoading ? (
+                <div className="text-muted-foreground font-orbitron animate-pulse text-left">
+                    Đang tải danh sách kinh nghiệm...
                 </div>
-            </div>
+            ) : (
+                <div className="space-y-6">
+                    {experiences.map((exp) => (
+                        <SpotlightCard key={exp.id} className="p-6 text-left">
+                            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                                <div className="space-y-3 flex-1">
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <span className="p-2 rounded-lg bg-primary/10 text-primary">
+                                            <Briefcase className="w-5 h-5" />
+                                        </span>
+                                        <div>
+                                            <h3 className="text-lg font-bold text-white font-orbitron">
+                                                {exp.role}
+                                            </h3>
+                                            <p className="text-sm font-semibold text-teal-400 font-space">
+                                                {exp.company} •{' '}
+                                                <span className="text-xs text-muted-foreground font-mono">
+                                                    {exp.period}
+                                                </span>
+                                            </p>
+                                        </div>
+                                    </div>
 
-            {/* Modal Dialog */}
+                                    {Array.isArray(exp.achievements) && exp.achievements.length > 0 && (
+                                        <div className="flex flex-wrap gap-2">
+                                            {exp.achievements.map((ach, idx) => (
+                                                <span
+                                                    key={idx}
+                                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-space font-semibold"
+                                                >
+                                                    <TrendingUp className="w-3 h-3" /> {ach}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    <ul className="list-disc list-inside text-xs text-muted-foreground font-space space-y-1 pl-2">
+                                        {Array.isArray(exp.description) ? (
+                                            exp.description.map((b, i) => <li key={i}>{b}</li>)
+                                        ) : (
+                                            <li>{exp.description}</li>
+                                        )}
+                                    </ul>
+
+                                    <div className="flex flex-wrap gap-1.5 pt-2">
+                                        {Array.isArray(exp.skills) &&
+                                            exp.skills.map((s, idx) => (
+                                                <span
+                                                    key={idx}
+                                                    className="text-[10px] font-orbitron font-bold uppercase tracking-wider px-2.5 py-0.5 rounded bg-slate-900 border border-white/10 text-slate-300"
+                                                >
+                                                    {s}
+                                                </span>
+                                            ))}
+                                    </div>
+                                </div>
+
+                                <div className="flex md:flex-col items-center gap-2 self-end md:self-center shrink-0">
+                                    <button
+                                        onClick={() => openEditModal(exp)}
+                                        className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-orbitron font-semibold text-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+                                    >
+                                        <Edit2 className="w-3.5 h-3.5 text-primary" /> Sửa
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(exp.id)}
+                                        className="px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-xs font-orbitron font-semibold text-rose-400 flex items-center gap-1.5 transition-colors cursor-pointer"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" /> Xóa
+                                    </button>
+                                </div>
+                            </div>
+                        </SpotlightCard>
+                    ))}
+                </div>
+            )}
+
+            {/* Add/Edit Modal */}
             {modalOpen && (
                 <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="glass-panel max-w-lg w-full rounded-2xl overflow-hidden border border-white/10 shadow-2xl animate-fade-in-up text-left">
-                        {/* Header */}
+                    <div className="glass-panel max-w-xl w-full rounded-2xl overflow-hidden border border-white/10 shadow-2xl animate-fade-in-up text-left">
                         <div className="bg-slate-900/60 px-6 py-4 border-b border-white/5 flex items-center justify-between">
-                            <h3 className="font-bold text-white font-outfit">
+                            <h3 className="font-bold text-white font-orbitron">
                                 {currentExp.id ? 'Chỉnh Sửa Kinh Nghiệm' : 'Thêm Kinh Nghiệm Mới'}
                             </h3>
-                            <button 
+                            <button
                                 onClick={() => setModalOpen(false)}
-                                className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground hover:text-white transition-colors cursor-pointer"
+                                className="text-muted-foreground hover:text-white cursor-pointer"
                             >
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-                        {/* Form */}
+
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
                             {errorMsg && (
-                                <div className="p-3.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold rounded-xl">
+                                <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs rounded-xl">
                                     {errorMsg}
                                 </div>
                             )}
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-300">Chức Vụ / Vị Trí</label>
-                                    <input 
-                                        type="text" 
+                            <div className="grid sm:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-orbitron text-slate-300 block">
+                                        Chức Danh / Vị Trí
+                                    </label>
+                                    <input
+                                        type="text"
                                         name="role"
                                         value={currentExp.role}
                                         onChange={handleInputChange}
                                         required
-                                        className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white"
-                                        placeholder="Ví dụ: Kỹ sư Backend"
+                                        placeholder="Senior Backend Engineer"
+                                        className="w-full bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-primary"
                                     />
                                 </div>
-                                <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-300">Tên Công Ty</label>
-                                    <input 
-                                        type="text" 
+
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-orbitron text-slate-300 block">
+                                        Tên Công Ty
+                                    </label>
+                                    <input
+                                        type="text"
                                         name="company"
                                         value={currentExp.company}
                                         onChange={handleInputChange}
                                         required
-                                        className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white"
-                                        placeholder="Ví dụ: TechVibe"
+                                        placeholder="TechVibe Solutions"
+                                        className="w-full bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-primary"
                                     />
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-300">Thời Gian Làm Việc</label>
-                                    <input 
-                                        type="text" 
-                                        name="period"
-                                        value={currentExp.period}
-                                        onChange={handleInputChange}
-                                        required
-                                        className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white"
-                                        placeholder="Ví dụ: 2024 - Hiện tại"
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-300">Kỹ Năng (Phân tách bằng dấu phẩy)</label>
-                                    <input 
-                                        type="text" 
-                                        name="skills"
-                                        value={currentExp.skills}
-                                        onChange={handleInputChange}
-                                        required
-                                        className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white"
-                                        placeholder="NestJS, TypeORM, Postgres"
-                                    />
-                                </div>
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-orbitron text-slate-300 block">
+                                    Thời Gian Làm Việc
+                                </label>
+                                <input
+                                    type="text"
+                                    name="period"
+                                    value={currentExp.period}
+                                    onChange={handleInputChange}
+                                    required
+                                    placeholder="2024 - Hiện tại"
+                                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-primary"
+                                />
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-slate-300">Mô Tả Công Việc (Mỗi ý một dòng)</label>
-                                <textarea 
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-orbitron text-slate-300 block">
+                                    Thành Tựu Nổi Bật (Phân tách bằng dấu phẩy)
+                                </label>
+                                <input
+                                    type="text"
+                                    name="achievements"
+                                    value={currentExp.achievements}
+                                    onChange={handleInputChange}
+                                    placeholder="Tăng 40% tốc độ, Latency < 120ms, 99.95% Uptime"
+                                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-primary"
+                                />
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-orbitron text-slate-300 block">
+                                    Chi Tiết Công Việc Ngắn Gọn (Mỗi dòng 1 ý)
+                                </label>
+                                <textarea
                                     name="description"
                                     value={currentExp.description}
                                     onChange={handleInputChange}
                                     required
                                     rows={4}
-                                    className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white resize-none"
-                                    placeholder="Ví dụ: Dẫn dắt đội ngũ 4 lập trình viên&#10;Tối ưu hóa cơ sở dữ liệu"
+                                    placeholder={`Thiết kế kiến trúc Microservices...\nTối ưu hóa truy vấn SQL và Redis...`}
+                                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-primary resize-none"
                                 />
                             </div>
 
-                            <div className="pt-4 border-t border-white/5 flex justify-end gap-3">
-                                <button 
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-orbitron text-slate-300 block">
+                                    Kỹ Năng Áp Dụng (Phân tách bằng dấu phẩy)
+                                </label>
+                                <input
+                                    type="text"
+                                    name="skills"
+                                    value={currentExp.skills}
+                                    onChange={handleInputChange}
+                                    required
+                                    placeholder="NestJS, TypeScript, PostgreSQL, Redis"
+                                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-primary"
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
+                                <button
                                     type="button"
                                     onClick={() => setModalOpen(false)}
-                                    className="px-4 py-2 rounded-lg font-semibold bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white transition-colors cursor-pointer"
+                                    className="px-4 py-2 rounded-xl bg-white/5 text-xs font-orbitron font-semibold text-slate-300 cursor-pointer"
                                 >
                                     Hủy
                                 </button>
-                                <button 
-                                    type="submit" 
+                                <button
+                                    type="submit"
                                     disabled={isSaving}
-                                    className="px-5 py-2 rounded-lg font-semibold bg-gradient-to-r from-primary to-secondary text-white hover:shadow-[0_0_10px_rgba(20,184,166,0.2)] transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                                    className="px-5 py-2 rounded-xl bg-primary text-slate-950 text-xs font-orbitron font-bold flex items-center gap-1.5 hover:bg-primary/90 cursor-pointer disabled:opacity-50"
                                 >
-                                    <Save className="w-4 h-4 inline mr-1.5" /> {isSaving ? 'Đang lưu...' : 'Lưu Thay Đổi'}
+                                    <Save className="w-4 h-4" />{' '}
+                                    {isSaving ? 'Đang lưu...' : 'Lưu Kinh Nghiệm'}
                                 </button>
                             </div>
                         </form>

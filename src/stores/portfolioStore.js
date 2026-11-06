@@ -6,7 +6,6 @@ export const usePortfolioStore = create((set, get) => ({
     about: null,
     projects: [],
     experiences: [],
-    testimonials: [],
     messages: [],
     settings: null,
     isLoading: false,
@@ -142,38 +141,6 @@ export const usePortfolioStore = create((set, get) => ({
         }
     },
 
-    // Testimonials CRUD
-    fetchTestimonials: async () => {
-        set({ isLoading: true, error: null });
-        try {
-            const res = await api.get('/portfolio/testimonials');
-            set({ testimonials: res.data, isLoading: false });
-        } catch (err) {
-            set({ error: err.message, isLoading: false });
-        }
-    },
-    saveTestimonial: async (data) => {
-        set({ isLoading: true, error: null });
-        try {
-            const res = await api.post('/portfolio/testimonials', data);
-            set({ isLoading: false });
-            get().fetchTestimonials();
-            return res.data;
-        } catch (err) {
-            set({ error: err.message, isLoading: false });
-            throw err;
-        }
-    },
-    deleteTestimonial: async (id) => {
-        try {
-            await api.delete(`/portfolio/testimonials/${id}`);
-            get().fetchTestimonials();
-        } catch (err) {
-            set({ error: err.message });
-            throw err;
-        }
-    },
-
     // Messages Inbox
     fetchMessages: async () => {
         set({ isLoading: true, error: null });
@@ -183,5 +150,5 @@ export const usePortfolioStore = create((set, get) => ({
         } catch (err) {
             set({ error: err.message, isLoading: false });
         }
-    }
+    },
 }));

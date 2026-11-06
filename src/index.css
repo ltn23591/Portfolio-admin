@@ -1,6 +1,10 @@
 @import 'tailwindcss';
 
 @theme {
+    --font-sans: 'Space Grotesk', sans-serif;
+    --font-display: 'Orbitron', sans-serif;
+    --font-mono: 'Fira Code', monospace;
+
     --color-background: #06090d;
     --color-foreground: #f0f2f5;
 
@@ -20,11 +24,15 @@
 }
 
 @layer base {
-    body {
+    html, body {
         background-color: var(--color-background);
         color: var(--color-foreground);
-        font-family: 'Outfit', 'Inter', sans-serif;
+        font-family: 'Space Grotesk', sans-serif;
         overflow-x: hidden;
+    }
+
+    h1, h2, h3, h4 {
+        font-family: 'Orbitron', 'Space Grotesk', sans-serif;
     }
 
     /* Custom scrollbars */
@@ -47,24 +55,82 @@
 @layer components {
     /* UI Pro Max Glass Panels */
     .glass-panel {
-        background: rgba(13, 18, 25, 0.7);
+        background: rgba(13, 18, 25, 0.75);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .glass-header {
-        background: rgba(6, 9, 13, 0.75);
+        background: rgba(6, 9, 13, 0.8);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .glow-hover {
         transition: all 0.3s ease;
     }
     .glow-hover:hover {
-        border-color: rgba(20, 184, 166, 0.3);
-        box-shadow: 0 0 20px rgba(20, 184, 166, 0.08);
+        border-color: rgba(20, 184, 166, 0.35);
+        box-shadow: 0 0 20px rgba(20, 184, 166, 0.12);
+    }
+
+    /* Fonts Mapping */
+    .font-orbitron {
+        font-family: 'Orbitron', sans-serif;
+    }
+    .font-space {
+        font-family: 'Space Grotesk', sans-serif;
+    }
+    .font-outfit {
+        font-family: 'Orbitron', sans-serif;
+    }
+}
+
+@layer utilities {
+    @keyframes fade-in-up {
+        from {
+            opacity: 0;
+            transform: translateY(16px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes rb-shine {
+        0% {
+            background-position: 100%;
+        }
+        100% {
+            background-position: -100%;
+        }
+    }
+
+    @keyframes rb-gradient {
+        0% {
+            background-position: 0% 50%;
+        }
+        50% {
+            background-position: 100% 50%;
+        }
+        100% {
+            background-position: 0% 50%;
+        }
+    }
+
+    .animate-fade-in-up {
+        animation: fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .animate-rb-shine {
+        animation: rb-shine 4s linear infinite;
+    }
+
+    .animate-rb-gradient {
+        background-size: 300% 100%;
+        animation: rb-gradient 6s ease infinite;
     }
 }

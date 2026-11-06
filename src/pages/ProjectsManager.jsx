@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, X, Save, RefreshCw, FolderGit2, Trash, GripHorizontal } from 'lucide-react';
+import {
+    Plus,
+    Edit2,
+    Trash2,
+    X,
+    Save,
+    RefreshCw,
+    Trash,
+    GripHorizontal,
+    Trophy,
+} from 'lucide-react';
+import { SpotlightCard, BlurText, ShinyText } from '../components/reactbits';
 
 const ProjectsManager = () => {
     const [projects, setProjects] = useState([]);
@@ -7,14 +18,16 @@ const ProjectsManager = () => {
     const [modalOpen, setModalOpen] = useState(false);
     const [currentProject, setCurrentProject] = useState({
         id: null,
+        isBest: false,
         title: '',
         description: '',
+        highlightsText: '',
         category: 'fullstack',
         tech: '',
         github: '',
         live: '',
         images: [],
-        repos: []
+        repos: [],
     });
     const [isSaving, setIsSaving] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
@@ -30,7 +43,7 @@ const ProjectsManager = () => {
                 const data = await res.json();
                 setProjects(data);
             }
-        } catch (err) {
+        } catch {
             setErrorMsg('Không thể kết nối đến máy chủ.');
         } finally {
             setIsLoading(false);
@@ -38,20 +51,37 @@ const ProjectsManager = () => {
     };
 
     useEffect(() => {
-        fetchProjects();
+        let isMounted = true;
+        const init = async () => {
+            try {
+                const res = await fetch('http://localhost:3000/api/portfolio/projects');
+                if (res.ok && isMounted) {
+                    const data = await res.json();
+                    setProjects(data);
+                }
+            } catch {
+                if (isMounted) setErrorMsg('Không thể kết nối đến máy chủ.');
+            }
+        };
+        init();
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     const openAddModal = () => {
         setCurrentProject({
             id: null,
+            isBest: false,
             title: '',
             description: '',
+            highlightsText: '',
             category: 'fullstack',
             tech: '',
             github: '',
             live: '',
             images: [],
-            repos: []
+            repos: [],
         });
         setErrorMsg('');
         setModalOpen(true);
@@ -60,26 +90,59 @@ const ProjectsManager = () => {
     const openEditModal = (proj) => {
         setCurrentProject({
             ...proj,
-            tech: Array.isArray(proj.tech) ? proj.tech.join(', ') : proj.tech,
-            images: Array.isArray(proj.images) ? proj.images : (proj.images ? [proj.images] : []),
-            repos: Array.isArray(proj.repos) ? proj.repos : []
+            isBest: Boolean(proj.isBest),
+            highlightsText: Array.isArray(proj.highlights)
+                ? proj.highlights.join('\n')
+                : proj.description || '',
+            tech: Array.isArray(proj.tech) ? proj.tech.join(', ') : proj.tech || '',
+            images: Array.isArray(proj.images)
+                ? proj.images
+                : proj.images
+                ? [proj.images]
+                : [],
+            repos: Array.isArray(proj.repos) ? proj.repos : [],
         });
         setErrorMsg('');
         setModalOpen(true);
+    };
+
+    const handleSetBestProject = async (proj) => {
+        try {
+            const payload = {
+                ...proj,
+                isBest: true,
+                highlights: Array.isArray(proj.highlights) ? proj.highlights : [],
+                tech: Array.isArray(proj.tech) ? proj.tech : [],
+                images: Array.isArray(proj.images) ? proj.images : [],
+                repos: Array.isArray(proj.repos) ? proj.repos : [],
+            };
+            const res = await fetch('http://localhost:3000/api/portfolio/projects', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            if (res.ok) {
+                fetchProjects();
+            } else {
+                alert('Không thể đặt làm Best Project.');
+            }
+        } catch {
+            alert('Lỗi kết nối máy chủ.');
+        }
     };
 
     const handleDelete = async (id) => {
         if (!window.confirm('Bạn có chắc chắn muốn xóa dự án này?')) return;
         try {
             const res = await fetch(`http://localhost:3000/api/portfolio/projects/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
             });
             if (res.ok) {
                 fetchProjects();
             } else {
                 alert('Xóa dự án thất bại.');
             }
-        } catch (err) {
+        } catch {
             alert('Lỗi kết nối.');
         }
     };
@@ -98,7 +161,7 @@ const ProjectsManager = () => {
                 formData.append('file', files[i]);
                 const res = await fetch('http://localhost:3000/api/upload', {
                     method: 'POST',
-                    body: formData
+                    body: formData,
                 });
                 const data = await res.json();
                 if (res.ok && data.url) {
@@ -109,51 +172,41 @@ const ProjectsManager = () => {
             }
 
             if (uploadedUrls.length > 0) {
-                setCurrentProject(prev => ({
+                setCurrentProject((prev) => ({
                     ...prev,
-                    images: [...(prev.images || []), ...uploadedUrls]
+                    images: [...(prev.images || []), ...uploadedUrls],
                 }));
             }
-        } catch (err) {
+        } catch {
             setErrorMsg('Lỗi kết nối khi tải ảnh lên.');
         } finally {
             setIsUploading(false);
-            e.target.value = '';
         }
     };
 
     const removeImage = (indexToRemove) => {
-        setCurrentProject(prev => ({
+        setCurrentProject((prev) => ({
             ...prev,
-            images: prev.images.filter((_, idx) => idx !== indexToRemove)
+            images: prev.images.filter((_, idx) => idx !== indexToRemove),
         }));
     };
 
-    // HTML5 Drag & Drop handlers for sorting images
-    const handleDragStart = (e, index) => {
-        setDraggedIndex(index);
-        e.dataTransfer.effectAllowed = 'move';
+    const handleDragStart = (idx) => {
+        setDraggedIndex(idx);
     };
 
-    const handleDragOver = (e, index) => {
+    const handleDragOver = (e) => {
         e.preventDefault();
     };
 
-    const handleDrop = (e, targetIndex) => {
-        e.preventDefault();
+    const handleDrop = (targetIndex) => {
         if (draggedIndex === null || draggedIndex === targetIndex) return;
-
         const updatedImages = [...currentProject.images];
-        const draggedImage = updatedImages[draggedIndex];
-        
-        // Remove from original position
-        updatedImages.splice(draggedIndex, 1);
-        // Insert into target position
+        const [draggedImage] = updatedImages.splice(draggedIndex, 1);
         updatedImages.splice(targetIndex, 0, draggedImage);
-
-        setCurrentProject(prev => ({
+        setCurrentProject((prev) => ({
             ...prev,
-            images: updatedImages
+            images: updatedImages,
         }));
         setDraggedIndex(null);
     };
@@ -163,21 +216,21 @@ const ProjectsManager = () => {
     };
 
     const addGithubRepo = () => {
-        setCurrentProject(prev => ({
+        setCurrentProject((prev) => ({
             ...prev,
-            repos: [...(prev.repos || []), { label: '', url: '' }]
+            repos: [...(prev.repos || []), { label: '', url: '' }],
         }));
     };
 
     const removeGithubRepo = (idx) => {
-        setCurrentProject(prev => ({
+        setCurrentProject((prev) => ({
             ...prev,
-            repos: prev.repos.filter((_, i) => i !== idx)
+            repos: prev.repos.filter((_, i) => i !== idx),
         }));
     };
 
     const handleGithubRepoChange = (idx, field, value) => {
-        setCurrentProject(prev => {
+        setCurrentProject((prev) => {
             const updated = [...prev.repos];
             updated[idx] = { ...updated[idx], [field]: value };
             return { ...prev, repos: updated };
@@ -188,30 +241,41 @@ const ProjectsManager = () => {
         e.preventDefault();
         setIsSaving(true);
         setErrorMsg('');
-        
+
         const techArray = currentProject.tech
-            ? currentProject.tech.split(',').map(t => t.trim()).filter(t => t.length > 0)
+            ? currentProject.tech
+                  .split(',')
+                  .map((t) => t.trim())
+                  .filter((t) => t.length > 0)
+            : [];
+
+        const highlightsArray = currentProject.highlightsText
+            ? currentProject.highlightsText
+                  .split('\n')
+                  .map((h) => h.trim())
+                  .filter((h) => h.length > 0)
             : [];
 
         const reposList = (currentProject.repos || [])
-            .filter(r => r.url.trim().length > 0)
-            .map(r => ({ label: r.label.trim() || 'Code', url: r.url.trim() }));
+            .filter((r) => r.url.trim().length > 0)
+            .map((r) => ({ label: r.label.trim() || 'Code', url: r.url.trim() }));
 
-        const primaryGithub = reposList.length > 0 ? reposList[0].url : '';
+        const primaryGithub = reposList.length > 0 ? reposList[0].url : currentProject.github;
 
         const payload = {
             ...currentProject,
+            highlights: highlightsArray,
             tech: techArray,
             images: currentProject.images,
             github: primaryGithub,
-            repos: reposList
+            repos: reposList,
         };
 
         try {
             const res = await fetch('http://localhost:3000/api/portfolio/projects', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payload),
             });
             if (res.ok) {
                 setModalOpen(false);
@@ -219,7 +283,7 @@ const ProjectsManager = () => {
             } else {
                 setErrorMsg('Không thể lưu thông tin dự án.');
             }
-        } catch (err) {
+        } catch {
             setErrorMsg('Lỗi kết nối.');
         } finally {
             setIsSaving(false);
@@ -227,79 +291,129 @@ const ProjectsManager = () => {
     };
 
     const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setCurrentProject(prev => ({ ...prev, [name]: value }));
+        const { name, value, type, checked } = e.target;
+        setCurrentProject((prev) => ({
+            ...prev,
+            [name]: type === 'checkbox' ? checked : value,
+        }));
     };
 
     return (
         <div className="space-y-8 animate-fade-in-up">
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="text-left">
-                    <h1 className="text-3xl font-bold font-outfit text-white">Quản Lý Dự Án</h1>
-                    <p className="text-sm text-muted-foreground mt-1">Thêm, chỉnh sửa hoặc xóa danh sách các dự án hiển thị trên portfolio.</p>
+                    <ShinyText
+                        text="05, 06 & 07 // PROJECTS, DETAIL & BEST PROJECT"
+                        speed={3}
+                        className="text-xs font-orbitron font-bold uppercase tracking-widest mb-1"
+                    />
+                    <h1 className="text-3xl font-bold font-orbitron text-white">
+                        <BlurText text="5-7. Quản Lý Dự Án & Best Project" />
+                    </h1>
+                    <p className="text-sm text-muted-foreground font-space mt-1">
+                        Quản lý danh sách dự án, đánh dấu Best Project và các kết quả nổi bật nhất (Project Detail).
+                    </p>
                 </div>
-                <button 
+                <button
                     onClick={openAddModal}
-                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary to-secondary text-white font-semibold flex items-center gap-2 hover:shadow-[0_0_15px_rgba(20,184,166,0.25)] transition-all duration-300 cursor-pointer"
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary to-secondary text-slate-950 font-orbitron font-bold text-xs uppercase tracking-wider flex items-center gap-2 hover:shadow-[0_0_15px_rgba(20,184,166,0.3)] transition-all duration-300 cursor-pointer"
                 >
-                    <Plus className="w-5 h-5" /> Thêm Dự Án Mới
+                    <Plus className="w-4 h-4" /> Thêm Dự Án Mới
                 </button>
             </div>
 
             {/* Project List Table */}
-            <div className="glass-panel rounded-2xl overflow-hidden border border-white/5 text-left">
+            <SpotlightCard className="overflow-hidden text-left">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-slate-900/40 border-b border-white/5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            <tr className="bg-slate-900/60 border-b border-white/5 text-xs font-orbitron font-bold uppercase tracking-wider text-muted-foreground">
                                 <th className="px-6 py-4">Hình Ảnh & Tên Dự Án</th>
                                 <th className="px-6 py-4">Phân Loại</th>
                                 <th className="px-6 py-4">Công Nghệ</th>
                                 <th className="px-6 py-4 text-right">Hành Động</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-white/5 text-sm text-slate-300">
+                        <tbody className="divide-y divide-white/5 text-sm text-slate-300 font-space">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan="4" className="px-6 py-8 text-center text-muted-foreground animate-pulse">Đang tải danh sách dự án...</td>
+                                    <td
+                                        colSpan="4"
+                                        className="px-6 py-8 text-center text-muted-foreground font-orbitron animate-pulse"
+                                    >
+                                        Đang tải danh sách dự án...
+                                    </td>
                                 </tr>
                             ) : projects.length > 0 ? (
                                 projects.map((proj, idx) => (
-                                    <tr key={idx} className="hover:bg-white/5 transition-colors duration-200">
+                                    <tr
+                                        key={idx}
+                                        className="hover:bg-white/5 transition-colors duration-200"
+                                    >
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <img 
-                                                    src={(proj.images && proj.images.length > 0) ? proj.images[0] : 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=100'} 
+                                                <img
+                                                    src={
+                                                        proj.images && proj.images.length > 0
+                                                            ? proj.images[0]
+                                                            : 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=100'
+                                                    }
                                                     alt={proj.title}
                                                     className="w-14 h-9 rounded object-cover border border-white/10 shrink-0"
                                                 />
                                                 <div className="font-semibold text-white flex flex-col">
-                                                    <span>{proj.title}</span>
-                                                    <span className="text-[11px] text-muted-foreground">({proj.images ? proj.images.length : 0} ảnh)</span>
+                                                    <span className="font-orbitron text-sm flex items-center gap-2">
+                                                        {proj.title}
+                                                        {proj.isBest && (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[10px]">
+                                                                <Trophy className="w-3 h-3" /> BEST
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                    <span className="text-[11px] text-muted-foreground">
+                                                        ({proj.images ? proj.images.length : 0} ảnh)
+                                                    </span>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className="px-2.5 py-0.5 rounded text-xs font-semibold bg-slate-900 border border-white/5 text-teal-400 capitalize">
-                                                {proj.category === 'fullstack' ? 'Fullstack' : proj.category === 'backend' ? 'Backend API' : 'Frontend UI'}
+                                            <span className="px-2.5 py-1 rounded text-xs font-orbitron font-semibold bg-slate-900 border border-white/10 text-teal-400 uppercase">
+                                                {proj.category === 'fullstack'
+                                                    ? 'Fullstack'
+                                                    : 'Backend API'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="flex flex-wrap gap-1.5 max-w-[250px]">
-                                                {proj.tech.map((t, tIdx) => (
-                                                    <span key={tIdx} className="text-[10px] bg-white/5 px-2 py-0.5 rounded text-slate-400">{t}</span>
+                                            <div className="flex flex-wrap gap-1.5 max-w-[260px]">
+                                                {(proj.tech || []).map((t, tIdx) => (
+                                                    <span
+                                                        key={tIdx}
+                                                        className="text-[10px] font-orbitron bg-white/5 px-2 py-0.5 rounded text-slate-300"
+                                                    >
+                                                        {t}
+                                                    </span>
                                                 ))}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <button 
+                                            <div className="flex justify-end items-center gap-2">
+                                                {!proj.isBest && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleSetBestProject(proj)}
+                                                        className="px-2.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[11px] font-orbitron font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                                                        title="Đặt làm dự án nổi bật nhất (Best Project)"
+                                                    >
+                                                        <Trophy className="w-3.5 h-3.5" /> Đặt Best
+                                                    </button>
+                                                )}
+                                                <button
                                                     onClick={() => openEditModal(proj)}
                                                     className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/5 transition-colors cursor-pointer"
                                                 >
                                                     <Edit2 className="w-4 h-4" />
                                                 </button>
-                                                <button 
+                                                <button
                                                     onClick={() => handleDelete(proj.id)}
                                                     className="p-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 hover:border-rose-500/40 transition-colors cursor-pointer"
                                                 >
@@ -311,253 +425,293 @@ const ProjectsManager = () => {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="4" className="px-6 py-8 text-center text-muted-foreground">Không tìm thấy dự án nào. Vui lòng thêm mới.</td>
+                                    <td
+                                        colSpan="4"
+                                        className="px-6 py-8 text-center text-muted-foreground"
+                                    >
+                                        Chưa có dự án trong cơ sở dữ liệu. Đang hiển thị bộ dự án tiêu biểu mặc định trên trang chủ.
+                                    </td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
                 </div>
-            </div>
+            </SpotlightCard>
 
-            {/* Add / Edit Modal Overlay */}
+            {/* Add / Edit Modal */}
             {modalOpen && (
-                <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="glass-panel max-w-lg w-full rounded-2xl overflow-hidden border border-white/10 shadow-2xl animate-fade-in-up text-left">
-                        {/* Header */}
-                        <div className="bg-slate-900/60 px-6 py-4 border-b border-white/5 flex items-center justify-between">
-                            <h3 className="font-bold text-white font-outfit">
+                <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+                    <div className="glass-panel max-w-2xl w-full rounded-2xl overflow-hidden border border-white/10 shadow-2xl animate-fade-in-up text-left my-auto">
+                        <div className="bg-slate-900/80 px-6 py-4 border-b border-white/10 flex items-center justify-between">
+                            <h3 className="font-bold text-white font-orbitron">
                                 {currentProject.id ? 'Chỉnh Sửa Dự Án' : 'Thêm Dự Án Mới'}
                             </h3>
-                            <button 
+                            <button
                                 onClick={() => setModalOpen(false)}
-                                className="p-1.5 rounded-lg hover:bg-white/10 text-muted-foreground hover:text-white transition-colors cursor-pointer"
+                                className="text-muted-foreground hover:text-white cursor-pointer"
                             >
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-                        {/* Form */}
-                        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+
+                        <form
+                            onSubmit={handleSubmit}
+                            className="p-6 space-y-4 max-h-[82vh] overflow-y-auto font-space"
+                        >
                             {errorMsg && (
-                                <div className="p-3.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold rounded-xl">
+                                <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs rounded-xl">
                                     {errorMsg}
                                 </div>
                             )}
 
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-slate-300">Tiêu Đề Dự Án</label>
-                                <input 
-                                    type="text" 
-                                    name="title"
-                                    value={currentProject.title}
+                            {/* 7. Best Project Toggle */}
+                            <label className="flex items-center justify-between p-4 rounded-xl bg-amber-500/10 border border-amber-400/30 cursor-pointer">
+                                <div className="flex items-center gap-3">
+                                    <Trophy className="w-5 h-5 text-amber-400" />
+                                    <div>
+                                        <span className="text-xs font-orbitron font-bold text-amber-300 uppercase block">
+                                            7. Đánh Dấu Là Best Project (Dự Án Nổi Bật Nhất)
+                                        </span>
+                                        <span className="text-xs text-slate-300">
+                                            Hiển thị tại khung Featured lớn đầu mục Dự án kèm các chỉ số kết quả đột phá.
+                                        </span>
+                                    </div>
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    name="isBest"
+                                    checked={Boolean(currentProject.isBest)}
                                     onChange={handleInputChange}
-                                    required
-                                    className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white"
-                                    placeholder="Ví dụ: Portfolio CMS"
+                                    className="w-5 h-5 accent-teal-400 cursor-pointer"
                                 />
-                            </div>
+                            </label>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-300">Phân Loại</label>
-                                    <select 
+                            <div className="grid sm:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-orbitron text-slate-300 block">
+                                        Tên Dự Án
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="title"
+                                        value={currentProject.title}
+                                        onChange={handleInputChange}
+                                        required
+                                        placeholder="DevFlow - Realtime Hub"
+                                        className="w-full bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-primary"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-orbitron text-slate-300 block">
+                                        Danh Mục
+                                    </label>
+                                    <select
                                         name="category"
                                         value={currentProject.category}
                                         onChange={handleInputChange}
-                                        className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white"
+                                        className="w-full bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-primary"
                                     >
                                         <option value="fullstack">Fullstack</option>
-                                        <option value="backend">Backend API</option>
-                                        <option value="frontend">Frontend UI</option>
+                                        <option value="backend">Backend & API</option>
                                     </select>
                                 </div>
-                                <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-300">Công Nghệ (Phân tách bằng dấu phẩy)</label>
-                                    <input 
-                                        type="text" 
-                                        name="tech"
-                                        value={currentProject.tech}
-                                        onChange={handleInputChange}
-                                        required
-                                        className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white"
-                                        placeholder="React, Node.js, Express"
-                                    />
-                                </div>
                             </div>
 
-                            {/* Images Grid Manager */}
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-300">Album Hình Ảnh Dự Án ({currentProject.images ? currentProject.images.length : 0} ảnh)</label>
-                                        <p className="text-[10px] text-muted-foreground mt-0.5">Kéo thả các ảnh để thay đổi thứ tự. Ảnh đầu tiên sẽ là ảnh đại diện chính.</p>
-                                    </div>
-                                    <div>
-                                        <input 
-                                            type="file" 
-                                            accept="image/*" 
-                                            multiple
-                                            onChange={handleFileUpload} 
-                                            className="hidden" 
-                                            id="project-image-files" 
-                                        />
-                                        <label 
-                                            htmlFor="project-image-files"
-                                            className="px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-xs font-bold text-primary hover:bg-primary/20 hover:text-white transition-all cursor-pointer block"
-                                        >
-                                            {isUploading ? 'Đang tải...' : '+ Thêm Ảnh'}
-                                        </label>
-                                    </div>
-                                </div>
-
-                                {/* Thumbnail previews */}
-                                {currentProject.images && currentProject.images.length > 0 ? (
-                                    <div className="grid grid-cols-4 gap-2 p-2.5 bg-slate-900/40 border border-white/5 rounded-xl">
-                                        {currentProject.images.map((imgUrl, index) => (
-                                            <div 
-                                                key={index} 
-                                                draggable
-                                                onDragStart={(e) => handleDragStart(e, index)}
-                                                onDragOver={(e) => handleDragOver(e, index)}
-                                                onDrop={(e) => handleDrop(e, index)}
-                                                onDragEnd={handleDragEnd}
-                                                className={`relative group/thumb aspect-video rounded-lg overflow-hidden border transition-all duration-300 cursor-grab active:cursor-grabbing ${
-                                                    index === 0 
-                                                        ? 'border-primary ring-1 ring-primary/45 shadow-[0_0_12px_rgba(20,184,166,0.15)]' 
-                                                        : 'border-white/10 hover:border-white/30'
-                                                } ${draggedIndex === index ? 'opacity-40 scale-95' : 'opacity-100'}`}
-                                            >
-                                                <img 
-                                                    src={imgUrl} 
-                                                    alt={`preview-${index}`} 
-                                                    className="w-full h-full object-cover select-none"
-                                                />
-                                                
-                                                {/* Cover Badge for index 0 */}
-                                                {index === 0 && (
-                                                    <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-primary text-[8px] font-extrabold text-slate-950 shadow-md pointer-events-none select-none uppercase tracking-wider">
-                                                        Ảnh chính
-                                                    </span>
-                                                )}
-
-                                                {/* Drag handle helper icon */}
-                                                <div className="absolute top-1.5 right-1.5 p-1 rounded bg-black/60 text-slate-300 pointer-events-none opacity-50 group-hover/thumb:opacity-100 transition-opacity">
-                                                    <GripHorizontal className="w-3 h-3" />
-                                                </div>
-
-                                                {/* Hover reorder text */}
-                                                <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                                                    <span className="text-[9px] text-white font-medium bg-black/80 px-1.5 py-0.5 rounded">Kéo thả</span>
-                                                </div>
-
-                                                {/* Delete Button */}
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        removeImage(index);
-                                                    }}
-                                                    className="absolute bottom-1.5 right-1.5 p-1 rounded bg-rose-600 hover:bg-rose-500 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity duration-200 cursor-pointer shadow-md"
-                                                    title="Xóa ảnh"
-                                                >
-                                                    <Trash className="w-3 h-3" />
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="text-center py-4 bg-slate-900/20 border border-dashed border-white/10 rounded-xl text-xs text-muted-foreground">
-                                        Chưa có hình ảnh nào. Hãy thêm ảnh để hiển thị Slider ngoài Landing Page.
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-slate-300">Mô Tả Dự Án</label>
-                                <textarea 
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-orbitron text-slate-300 block">
+                                    Tóm Tắt Ngắn Gọn (1-2 câu trên thẻ dự án)
+                                </label>
+                                <input
+                                    type="text"
                                     name="description"
                                     value={currentProject.description}
                                     onChange={handleInputChange}
                                     required
-                                    rows={3}
-                                    className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white resize-none"
+                                    placeholder="Hệ thống điều phối tác vụ ngầm và API chịu tải cao..."
+                                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-primary"
                                 />
                             </div>
 
-                            {/* GitHub Repos Dynamic List */}
+                            {/* 6. Project Detail Highlights */}
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-orbitron text-slate-300 block">
+                                    6. Kết Quả Nổi Bật Trong Project Detail (Mỗi dòng 1 kết quả ngắn gọn)
+                                </label>
+                                <textarea
+                                    name="highlightsText"
+                                    value={currentProject.highlightsText}
+                                    onChange={handleInputChange}
+                                    rows={3}
+                                    placeholder={`Xử lý 50,000+ requests/ngày với độ trễ < 80ms\nGiảm 60% tải Database nhờ Redis Cluster Caching\nTích hợp thanh toán Stripe & Webhook tự động`}
+                                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-primary resize-none"
+                                />
+                            </div>
+
+                            {/* Multi-Image Upload */}
                             <div className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                    <label className="text-xs font-bold text-slate-300">Danh sách Repositories GitHub</label>
-                                    <button
-                                        type="button"
-                                        onClick={addGithubRepo}
-                                        className="px-2.5 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary hover:bg-primary/20 hover:text-white transition-all cursor-pointer"
-                                    >
-                                        + Thêm Repo
-                                    </button>
-                                </div>
-                                
-                                {currentProject.repos && currentProject.repos.length > 0 ? (
-                                    <div className="space-y-2 p-2.5 bg-slate-900/40 border border-white/5 rounded-xl">
-                                        {currentProject.repos.map((repo, idx) => (
-                                            <div key={idx} className="flex gap-2 items-center">
-                                                <input 
-                                                    type="text"
-                                                    value={repo.label}
-                                                    onChange={(e) => handleGithubRepoChange(idx, 'label', e.target.value)}
-                                                    className="w-1/4 bg-slate-900/60 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white"
-                                                    placeholder="FE, BE, Admin..."
+                                <label className="text-xs font-orbitron text-slate-300 block">
+                                    Hình Ảnh Dự Án
+                                </label>
+                                {currentProject.images && currentProject.images.length > 0 && (
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-2">
+                                        {currentProject.images.map((imgUrl, idx) => (
+                                            <div
+                                                key={idx}
+                                                draggable
+                                                onDragStart={() => handleDragStart(idx)}
+                                                onDragOver={handleDragOver}
+                                                onDrop={() => handleDrop(idx)}
+                                                onDragEnd={handleDragEnd}
+                                                className={`relative group rounded-xl overflow-hidden border border-white/15 aspect-video bg-slate-900 cursor-grab ${
+                                                    draggedIndex === idx ? 'opacity-40 scale-95' : ''
+                                                }`}
+                                            >
+                                                <img
+                                                    src={imgUrl}
+                                                    alt={`Preview ${idx}`}
+                                                    className="w-full h-full object-cover pointer-events-none"
                                                 />
-                                                <input 
-                                                    type="text"
-                                                    value={repo.url}
-                                                    onChange={(e) => handleGithubRepoChange(idx, 'url', e.target.value)}
-                                                    className="w-2/3 bg-slate-900/60 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white"
-                                                    placeholder="https://github.com/..."
-                                                    required
-                                                />
+                                                <div className="absolute top-1.5 left-1.5 p-1 rounded bg-slate-950/60 text-white/70">
+                                                    <GripHorizontal className="w-3.5 h-3.5" />
+                                                </div>
                                                 <button
                                                     type="button"
-                                                    onClick={() => removeGithubRepo(idx)}
-                                                    className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/20 text-rose-400 hover:text-rose-300 transition-colors cursor-pointer"
+                                                    onClick={() => removeImage(idx)}
+                                                    className="absolute top-1.5 right-1.5 p-1 rounded-lg bg-rose-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                                                 >
                                                     <Trash className="w-3.5 h-3.5" />
                                                 </button>
                                             </div>
                                         ))}
                                     </div>
-                                ) : (
-                                    <div className="text-center py-3 bg-slate-900/20 border border-dashed border-white/10 rounded-xl text-[11px] text-muted-foreground">
-                                        Chưa có repository nào. Hãy bấm + Thêm Repo.
-                                    </div>
                                 )}
+
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        onChange={handleFileUpload}
+                                        className="hidden"
+                                        id="project-image-upload"
+                                    />
+                                    <label
+                                        htmlFor="project-image-upload"
+                                        className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-orbitron font-semibold text-primary flex items-center gap-2 cursor-pointer transition-all"
+                                    >
+                                        {isUploading ? (
+                                            <>
+                                                <RefreshCw className="w-4 h-4 animate-spin" /> Đang tải...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Plus className="w-4 h-4" /> Tải Ảnh Lên
+                                            </>
+                                        )}
+                                    </label>
+                                </div>
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-slate-300">Đường Dẫn Demo Trực Tiếp</label>
-                                <input 
-                                    type="text" 
-                                    name="live"
-                                    value={currentProject.live}
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-orbitron text-slate-300 block">
+                                    Công Nghệ Sử Dụng (Phân tách bằng dấu phẩy)
+                                </label>
+                                <input
+                                    type="text"
+                                    name="tech"
+                                    value={currentProject.tech}
                                     onChange={handleInputChange}
-                                    className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white"
-                                    placeholder="https://example.com"
+                                    required
+                                    placeholder="React.js, Node.js, NestJS, PostgreSQL, Redis"
+                                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-primary"
                                 />
                             </div>
 
-                            <div className="pt-4 border-t border-white/5 flex justify-end gap-3">
-                                <button 
+                            {/* Multi-Repo & Live Links */}
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-xs font-orbitron text-slate-300 block">
+                                        Đường Dẫn Mã Nguồn (GitHub)
+                                    </label>
+                                    <button
+                                        type="button"
+                                        onClick={addGithubRepo}
+                                        className="text-xs font-orbitron font-semibold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                                    >
+                                        <Plus className="w-3.5 h-3.5" /> Thêm Repo
+                                    </button>
+                                </div>
+
+                                {currentProject.repos &&
+                                    currentProject.repos.map((repo, idx) => (
+                                        <div key={idx} className="flex items-center gap-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Nhãn (VD: Backend)"
+                                                value={repo.label}
+                                                onChange={(e) =>
+                                                    handleGithubRepoChange(
+                                                        idx,
+                                                        'label',
+                                                        e.target.value
+                                                    )
+                                                }
+                                                className="w-1/3 bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-primary"
+                                            />
+                                            <input
+                                                type="url"
+                                                placeholder="https://github.com/..."
+                                                value={repo.url}
+                                                onChange={(e) =>
+                                                    handleGithubRepoChange(
+                                                        idx,
+                                                        'url',
+                                                        e.target.value
+                                                    )
+                                                }
+                                                className="flex-1 bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-primary"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => removeGithubRepo(idx)}
+                                                className="p-2 rounded-lg bg-rose-500/10 text-rose-400 cursor-pointer"
+                                            >
+                                                <Trash className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    ))}
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-orbitron text-slate-300 block">
+                                    Đường Dẫn Live Demo
+                                </label>
+                                <input
+                                    type="text"
+                                    name="live"
+                                    value={currentProject.live}
+                                    onChange={handleInputChange}
+                                    placeholder="https://example.com"
+                                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-primary"
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+                                <button
                                     type="button"
                                     onClick={() => setModalOpen(false)}
-                                    className="px-4 py-2 rounded-lg font-semibold bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white transition-colors cursor-pointer"
+                                    className="px-4 py-2 rounded-xl bg-white/5 text-xs font-orbitron font-semibold text-slate-300 cursor-pointer"
                                 >
                                     Hủy
                                 </button>
-                                <button 
-                                    type="submit" 
-                                    disabled={isSaving || isUploading}
-                                    className="px-5 py-2 rounded-lg font-semibold bg-gradient-to-r from-primary to-secondary text-white hover:shadow-[0_0_10px_rgba(20,184,166,0.2)] transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                                <button
+                                    type="submit"
+                                    disabled={isSaving}
+                                    className="px-5 py-2 rounded-xl bg-primary text-slate-950 text-xs font-orbitron font-bold flex items-center gap-1.5 hover:bg-primary/90 cursor-pointer disabled:opacity-50"
                                 >
-                                    <Save className="w-4 h-4 inline mr-1.5" /> {isSaving ? 'Đang lưu...' : 'Lưu Thay Đổi'}
+                                    <Save className="w-4 h-4" />{' '}
+                                    {isSaving ? 'Đang lưu...' : 'Lưu Dự Án'}
                                 </button>
                             </div>
                         </form>
