@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Save, CheckCircle, Upload, Image as ImageIcon, Trash2, RefreshCw } from 'lucide-react';
 import { SpotlightCard, BlurText, ShinyText } from '../components/reactbits';
+import { API_URL } from '../lib/api';
 
 const HeroManager = () => {
     const [heroData, setHeroData] = useState({
@@ -24,7 +25,7 @@ const HeroManager = () => {
         const fetchHero = async () => {
             setIsLoading(true);
             try {
-                const res = await fetch('http://localhost:3000/api/portfolio/hero');
+                const res = await fetch(`${API_URL}/api/portfolio/hero`);
                 if (res.ok) {
                     const data = await res.json();
                     if (data) setHeroData((prev) => ({ ...prev, ...data }));
@@ -52,7 +53,7 @@ const HeroManager = () => {
         try {
             const formData = new FormData();
             formData.append('file', file);
-            const res = await fetch('http://localhost:3000/api/upload', {
+            const res = await fetch(`${API_URL}/api/upload`, {
                 method: 'POST',
                 body: formData,
             });
@@ -78,7 +79,7 @@ const HeroManager = () => {
         setErrorMsg('');
         try {
             const res = await fetch(
-                `http://localhost:3000/api/portfolio/hero/${heroData.id || 1}`,
+                `${API_URL}/api/portfolio/hero/${heroData.id || 1}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

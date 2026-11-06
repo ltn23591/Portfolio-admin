@@ -11,6 +11,7 @@ import {
     Trophy,
 } from 'lucide-react';
 import { SpotlightCard, BlurText, ShinyText } from '../components/reactbits';
+import { API_URL } from '../lib/api';
 
 const ProjectsManager = () => {
     const [projects, setProjects] = useState([]);
@@ -38,7 +39,7 @@ const ProjectsManager = () => {
         setIsLoading(true);
         setErrorMsg('');
         try {
-            const res = await fetch('http://localhost:3000/api/portfolio/projects');
+            const res = await fetch(`${API_URL}/api/portfolio/projects`);
             if (res.ok) {
                 const data = await res.json();
                 setProjects(data);
@@ -54,7 +55,7 @@ const ProjectsManager = () => {
         let isMounted = true;
         const init = async () => {
             try {
-                const res = await fetch('http://localhost:3000/api/portfolio/projects');
+                const res = await fetch(`${API_URL}/api/portfolio/projects`);
                 if (res.ok && isMounted) {
                     const data = await res.json();
                     setProjects(data);
@@ -116,7 +117,7 @@ const ProjectsManager = () => {
                 images: Array.isArray(proj.images) ? proj.images : [],
                 repos: Array.isArray(proj.repos) ? proj.repos : [],
             };
-            const res = await fetch('http://localhost:3000/api/portfolio/projects', {
+            const res = await fetch(`${API_URL}/api/portfolio/projects`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
@@ -134,7 +135,7 @@ const ProjectsManager = () => {
     const handleDelete = async (id) => {
         if (!window.confirm('Bạn có chắc chắn muốn xóa dự án này?')) return;
         try {
-            const res = await fetch(`http://localhost:3000/api/portfolio/projects/${id}`, {
+            const res = await fetch(`${API_URL}/api/portfolio/projects/${id}`, {
                 method: 'DELETE',
             });
             if (res.ok) {
@@ -159,7 +160,7 @@ const ProjectsManager = () => {
             for (let i = 0; i < files.length; i++) {
                 const formData = new FormData();
                 formData.append('file', files[i]);
-                const res = await fetch('http://localhost:3000/api/upload', {
+                const res = await fetch(`${API_URL}/api/upload`, {
                     method: 'POST',
                     body: formData,
                 });
@@ -272,7 +273,7 @@ const ProjectsManager = () => {
         };
 
         try {
-            const res = await fetch('http://localhost:3000/api/portfolio/projects', {
+            const res = await fetch(`${API_URL}/api/portfolio/projects`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),

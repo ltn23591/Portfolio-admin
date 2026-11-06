@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Save, CheckCircle, GraduationCap } from 'lucide-react';
 import { SpotlightCard, BlurText, ShinyText } from '../components/reactbits';
+import { API_URL } from '../lib/api';
 
 const AboutManager = () => {
     const [aboutData, setAboutData] = useState({
@@ -24,7 +25,7 @@ const AboutManager = () => {
         const fetchAbout = async () => {
             setIsLoading(true);
             try {
-                const res = await fetch('http://localhost:3000/api/portfolio/about');
+                const res = await fetch(`${API_URL}/api/portfolio/about`);
                 if (res.ok) {
                     const data = await res.json();
                     if (data) setAboutData((prev) => ({ ...prev, ...data }));
@@ -50,7 +51,7 @@ const AboutManager = () => {
         setErrorMsg('');
         try {
             const res = await fetch(
-                `http://localhost:3000/api/portfolio/about/${aboutData.id || 1}`,
+                `${API_URL}/api/portfolio/about/${aboutData.id || 1}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

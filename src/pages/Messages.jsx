@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Calendar, User, Search, RefreshCw, X, ShieldAlert } from 'lucide-react';
 import { SpotlightCard, BlurText, ShinyText } from '../components/reactbits';
+import { API_URL } from '../lib/api';
 
 const Messages = () => {
     const [messages, setMessages] = useState([]);
@@ -13,7 +14,7 @@ const Messages = () => {
         setIsLoading(true);
         setErrorMsg('');
         try {
-            const res = await fetch('http://localhost:3000/api/contact');
+            const res = await fetch(`${API_URL}/api/contact`);
             if (res.ok) {
                 const data = await res.json();
                 setMessages(
@@ -25,25 +26,8 @@ const Messages = () => {
                 setErrorMsg('Không thể tải danh sách thư liên hệ từ máy chủ.');
             }
         } catch {
-            setErrorMsg('Không thể kết nối đến máy chủ. Đang hiển thị dữ liệu mẫu.');
-            setMessages([
-                {
-                    name: 'Nguyễn Văn A',
-                    email: 'john@example.com',
-                    subject: 'Yêu cầu: Hợp tác dự án',
-                    message:
-                        'Chào Nghĩa, bên mình đang cần tuyển lập trình viên tối ưu cơ sở dữ liệu PostgreSQL. Vui lòng phản hồi sớm nhé!',
-                    timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
-                },
-                {
-                    name: 'Sarah Jenkins',
-                    email: 'sarah@fintech.com',
-                    subject: 'Tuyển dụng Senior Backend Engineer',
-                    message:
-                        'Chúng tôi rất ấn tượng với kiến trúc Microservices trong Best Project của bạn. Hẹn bạn một buổi phỏng vấn kỹ thuật nhé!',
-                    timestamp: new Date(Date.now() - 3600000 * 24).toISOString(),
-                },
-            ]);
+            setErrorMsg('Không thể kết nối đến máy chủ.');
+            setMessages([]);
         } finally {
             setIsLoading(false);
         }
@@ -53,7 +37,7 @@ const Messages = () => {
         let isMounted = true;
         const init = async () => {
             try {
-                const res = await fetch('http://localhost:3000/api/contact');
+                const res = await fetch(`${API_URL}/api/contact`);
                 if (res.ok && isMounted) {
                     const data = await res.json();
                     setMessages(
@@ -64,25 +48,8 @@ const Messages = () => {
                 }
             } catch {
                 if (isMounted) {
-                    setErrorMsg('Không thể kết nối đến máy chủ. Đang hiển thị dữ liệu mẫu.');
-                    setMessages([
-                        {
-                            name: 'Nguyễn Văn A',
-                            email: 'john@example.com',
-                            subject: 'Yêu cầu: Hợp tác dự án',
-                            message:
-                                'Chào Nghĩa, bên mình đang cần tuyển lập trình viên tối ưu cơ sở dữ liệu PostgreSQL. Vui lòng phản hồi sớm nhé!',
-                            timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
-                        },
-                        {
-                            name: 'Sarah Jenkins',
-                            email: 'sarah@fintech.com',
-                            subject: 'Tuyển dụng Senior Backend Engineer',
-                            message:
-                                'Chúng tôi rất ấn tượng với kiến trúc Microservices trong Best Project của bạn. Hẹn bạn một buổi phỏng vấn kỹ thuật nhé!',
-                            timestamp: new Date(Date.now() - 3600000 * 24).toISOString(),
-                        },
-                    ]);
+                    setErrorMsg('Không thể kết nối đến máy chủ.');
+                    setMessages([]);
                 }
             }
         };

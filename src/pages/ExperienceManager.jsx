@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, X, Save, Briefcase, TrendingUp } from 'lucide-react';
 import { SpotlightCard, BlurText, ShinyText } from '../components/reactbits';
+import { API_URL } from '../lib/api';
 
 const ExperienceManager = () => {
     const [experiences, setExperiences] = useState([]);
@@ -22,7 +23,7 @@ const ExperienceManager = () => {
         setIsLoading(true);
         setErrorMsg('');
         try {
-            const res = await fetch('http://localhost:3000/api/portfolio/experience');
+            const res = await fetch(`${API_URL}/api/portfolio/experience`);
             if (res.ok) {
                 const data = await res.json();
                 setExperiences(data);
@@ -38,7 +39,7 @@ const ExperienceManager = () => {
         let isMounted = true;
         const init = async () => {
             try {
-                const res = await fetch('http://localhost:3000/api/portfolio/experience');
+                const res = await fetch(`${API_URL}/api/portfolio/experience`);
                 if (res.ok && isMounted) {
                     const data = await res.json();
                     setExperiences(data);
@@ -85,7 +86,7 @@ const ExperienceManager = () => {
     const handleDelete = async (id) => {
         if (!window.confirm('Bạn có chắc chắn muốn xóa mục kinh nghiệm này?')) return;
         try {
-            const res = await fetch(`http://localhost:3000/api/portfolio/experience/${id}`, {
+            const res = await fetch(`${API_URL}/api/portfolio/experience/${id}`, {
                 method: 'DELETE',
             });
             if (res.ok) {
@@ -130,7 +131,7 @@ const ExperienceManager = () => {
         };
 
         try {
-            const res = await fetch('http://localhost:3000/api/portfolio/experience', {
+            const res = await fetch(`${API_URL}/api/portfolio/experience`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),

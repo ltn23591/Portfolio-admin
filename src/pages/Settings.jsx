@@ -4,7 +4,7 @@ import { SpotlightCard, BlurText, ShinyText } from '../components/reactbits';
 
 const Settings = () => {
     const [settings, setSettings] = useState({
-        apiUrl: 'http://localhost:3000',
+        apiUrl: import.meta.env.VITE_API_URL || 'http://localhost:3000',
         enableNotifications: true,
         enableAutoRefresh: false,
         themeMode: 'dark',
